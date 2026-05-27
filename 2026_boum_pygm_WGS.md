@@ -54,6 +54,7 @@ Make fem and mal specific kmer dbs; subtract mal from fem; pull out reads with f
 
 
 # extract reads with fem-specific kmerz:
+(keep in mind that these are not "real" paired end reads - so subsequent assembly needs to be done with single ends concatenated reads
 ```
 #!/bin/sh
 #SBATCH --job-name=makemeryldb
@@ -66,6 +67,7 @@ Make fem and mal specific kmer dbs; subtract mal from fem; pull out reads with f
 #SBATCH --account=rrg-ben
 
 
+
 for r1 in fem_pygm_*_trim_R1.fq.gz; do
     # Derive the R2 file name from R1
     r2="${r1/*_trim_R1.fq.gz/*_trim_R2.fq.gz}"
@@ -74,10 +76,15 @@ for r1 in fem_pygm_*_trim_R1.fq.gz; do
     prefix=$(basename "$r1" _trim_R1.fq.gz)
     
     echo "Processing sample: $prefix"
+    /home/ben/projects/rrg-ben/ben/2025_bin/meryl/build/bin/meryl-lookup -include \
+	 -sequence "$r1" \
+         -mers in_pygmfem_meryldb.out_but_not_pygmmal_meryldb.out.meryl \
+         | pigz -c > "${prefix}_femspecific_R1.fastq.gz"
+
 /home/ben/projects/rrg-ben/ben/2025_bin/meryl/build/bin/meryl-lookup -include \
-      -sequence "$r1" \
-      -sequence2 "$r2" \
-      -mers in_pygmfem_meryldb.out_but_not_pygmmal_meryldb.out.meryl \
-      -r2 "${prefix}_femspecific_R2.fastq.gz" | pigz -c > "${prefix}_femspecific_R1.fastq.gz"
+         -sequence "$r2" \
+         -mers in_pygmfem_meryldb.out_but_not_pygmmal_meryldb.out.meryl \
+         | pigz -c > "${prefix}_femspecific_R2.fastq.gz"
+
 done
 ```
