@@ -6,3 +6,78 @@ I have pygm WGS data here:
 ```
 Plan:
 Make fem and mal specific kmer dbs; subtract mal from fem; pull out reads with fem-specific kmerz, assemble, map to boum
+
+# make a female kmer db
+```
+#!/bin/sh
+#SBATCH --job-name=makemeryldb
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+#SBATCH --time=48:00:00
+#SBATCH --mem=128gb
+#SBATCH --output=makemeryldb.%J.out
+#SBATCH --error=makemeryldb.%J.err
+#SBATCH --account=rrg-ben
+
+/home/ben/projects/rrg-ben/ben/2025_bin/meryl/build/bin/meryl count fem_pygm_*_trim_R[1,2].fq.gz threads=4 memory=128 k=29 output pygmfem_meryldb.out
+```
+# make a male kmer db
+```
+#!/bin/sh
+#SBATCH --job-name=makemeryldb
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+#SBATCH --time=48:00:00
+#SBATCH --mem=128gb
+#SBATCH --output=makemeryldb.%J.out
+#SBATCH --error=makemeryldb.%J.err
+#SBATCH --account=rrg-ben
+
+/home/ben/projects/rrg-ben/ben/2025_bin/meryl/build/bin/meryl count mal_pygm_*_trim_R[1,2].fq.gz threads=4 memory=128 k=29 output pygmmal_meryldb.out
+
+```
+# make a female-specific kmer db by using the difference flag
+```
+#!/bin/sh
+#SBATCH --job-name=meryl_intersect
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+#SBATCH --time=2:00:00
+#SBATCH --mem=128gb
+#SBATCH --output=meryl_intersect.%J.out
+#SBATCH --error=meryl_intersect.%J.err
+#SBATCH --account=rrg-ben
+
+# sbatch 2026_meryl_intersect.sh fq_meryl kmermeryl
+/home/ben/projects/rrg-ben/ben/2025_bin/meryl/build/bin/meryl difference ${1} ${2} output in_${1}_but_not_${2}.meryl
+```
+
+
+# extract reads with fem-specific kmerz:
+```
+#!/bin/sh
+#SBATCH --job-name=makemeryldb
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
+#SBATCH --time=2:00:00
+#SBATCH --mem=128gb
+#SBATCH --output=makemeryldb.%J.out
+#SBATCH --error=makemeryldb.%J.err
+#SBATCH --account=rrg-ben
+
+
+for r1 in fem_pygm_*_trim_R1.fq.gz; do
+    # Derive the R2 file name from R1
+    r2="${r1/*_trim_R1.fq.gz/*_trim_R2.fq.gz}"
+    
+    # Extract the base sample name for output files
+    prefix=$(basename "$r1" _trim_R1.fq.gz)
+    
+    echo "Processing sample: $prefix"
+/home/ben/projects/rrg-ben/ben/2025_bin/meryl/build/bin/meryl-lookup -include \
+      -sequence "$r1" \
+      -sequence2 "$r2" \
+      -mers in_pygmfem_meryldb.out_but_not_pygmmal_meryldb.out.meryl \
+      -r2 "${prefix}_femspecific_R2.fastq.gz" | pigz -c > "${prefix}_femspecific_R1.fastq.gz"
+done
+```
