@@ -88,3 +88,10 @@ for r1 in fem_pygm_*_trim_R1.fq.gz; do
 
 done
 ```
+
+# Assemble with Spades
+
+# Identify CDS using XL and filtered blast:
+```
+blastn -query /home/ben/projects/rrg-ben/ben/2025_allo_PacBio_assembly/Adam_boum_genome_assembly/XL_CDS_only_nospaces.fasta -db contigs.fasta_blastable -outfmt "6 qseqid sseqid length qlen" | awk '($3 / $4) >= 0.80' > XL_CDS_to_pygm_femspecific.txt
+```
